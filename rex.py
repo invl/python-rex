@@ -29,16 +29,27 @@ class RexMatch(dict):
         return six.u(self[0]) if self[0] else u''
 
 
+RE_FLAGS = {
+    'd': re.DEBUG,
+    'i': re.IGNORECASE,
+    'l': re.LOCALE,
+    'm': re.MULTILINE,
+    's': re.DOTALL,
+    'u': re.UNICODE,
+    'x': re.VERBOSE,
+}
+
+
+def to_re_flags(s):
+    """Convert string suffixes to numeric flags of re module."""
+    try:
+        re_flags = [RE_FLAGS[f] for f in s]
+    except KeyError:
+        raise ValueError('Bad flags')
+    return reduce(operator.or_, re_flags, 0)
+
+
 class Rex(object):
-    FLAGS = {
-        'd': re.DEBUG,
-        'i': re.IGNORECASE,
-        'l': re.LOCALE,
-        'm': re.MULTILINE,
-        's': re.DOTALL,
-        'u': re.UNICODE,
-        'x': re.VERBOSE,
-    }
 
     def __init__(self, action, pattern, replacement='', flags=0):
         self.action = action
@@ -95,12 +106,8 @@ def rex(expression, text=None, cache=True):
         replacement = pattern[index + 1:]
         pattern = pattern[:index]
 
-    try:
-        re_flags = [Rex.FLAGS[f] for f in expression[end + 1:]]
-    except KeyError:
-        raise ValueError('Bad flags')
-
-    rex_obj = Rex(action, pattern, replacement, reduce(operator.or_, re_flags, 0))
+    flags = to_re_flags(expression[end + 1:])
+    rex_obj = Rex(action, pattern, replacement, flags)
     if cache:
         REX_CACHE[expression] = rex_obj
 
@@ -108,6 +115,7 @@ def rex(expression, text=None, cache=True):
         return text == rex_obj
     else:
         return rex_obj
+
 rex.group = RexMatch()
 
 
